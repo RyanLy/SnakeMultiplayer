@@ -3,14 +3,34 @@
 angular.module('snakemultiplayerApp')
   .controller('MainCtrl', function ($scope, $http, socket, socketFactory) {
 
-    var mySnakeBoard = new SNAKE.Board(  {
+
+    var initializeBoard = function (num){
+        var mySnakeBoard = new SNAKE.Board(  {
                         boardContainer: "game-area",
                         fullScreen: false,
-                        numPlayers: 3,
+                        numPlayers: num,
                         height:800,
                         width:800
                         });   
+
+        mySnakeBoard.onPaused = function(argument){
+        $http.post('/api/things', { active : argument });
+        }
+
+        mySnakeBoard.onStart = function(argument){
+          $http.post('/api/things', { gameStart : true });
+        }
+
+        mySnakeBoard.onMove = function(argument){
+          $http.post('/api/things', { gameMove : true });
+        }
+        return mySnakeBoard
+    }
+
+
+    var mySnakeBoard = initializeBoard(3);
     console.log(mySnakeBoard);
+
 
     console.log(socket.socket);
     socket.socket.emit("newUser");
@@ -18,17 +38,8 @@ angular.module('snakemultiplayerApp')
     $scope.players = [];
 
 
-    mySnakeBoard.onPaused = function(argument){
-        $http.post('/api/things', { active : argument });
-    }
 
-    mySnakeBoard.onStart = function(argument){
-      $http.post('/api/things', { gameStart : true });
-    }
 
-    mySnakeBoard.onMove = function(argument){
-      $http.post('/api/things', { gameMove : true });
-    }
 
     socket.socket.on('clientid', function(data){
       console.log(data);
@@ -42,6 +53,10 @@ angular.module('snakemultiplayerApp')
       for (var i = 0; i < data.numClients; i++){
         $scope.players.push({});
       }
+
+        if(mySnakeBoard.getBoardState() !== 2){
+          mySnakeBoard = initializeBoard(data.numClients);
+        }
     });
   
 
